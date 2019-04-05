@@ -1,0 +1,108 @@
+---
+title: "Data Analysis of Human Activity Recognition using Smartphone Dataset"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+    ```{r set-options, echo=FALSE, cache=FALSE}
+options(width = 100)
+```
+
+
+## Data Set Description 
+
+The present analysis is based on a data set coming from the reference: 
+Davide Anguita, Alessandro Ghio, Luca Oneto, Xavier Parra and Jorge L. Reyes-Ortiz. Human Activity Recognition on Smartphones using a Multiclass Hardware-Friendly Support Vector Machine. International Workshop of Ambient Assisted Living (IWAAL 2012). Vitoria-Gasteiz, Spain. Dec 2012. 
+
+The direct link to the variables description is in:
+[links](http://archive.ics.uci.edu/ml/machine-learning-databases/00240/UCI%20HAR%20Dataset.names)
+
+the data are downloaded from :
+https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip
+
+First read data, labels and Subjects ID for train 
+
+```{r include = TRUE}
+library(dplyr)
+dat1 <- read.table("./UCI HAR Dataset/train/X_train.txt")
+labels1 <- read.table("./UCI HAR Dataset/train/Y_train.txt")
+subject1 <- read.table("./UCI HAR Dataset/train/subject_train.txt")
+dat1 <- cbind(subject1,dat1,labels1)
+```
+Then read data, labels and Subjects ID for test 
+```{r include = TRUE}
+dat2 <- read.table("./UCI HAR Dataset/test/X_test.txt")
+labels2 <- read.table("./UCI HAR Dataset/test/Y_test.txt")
+subject2 <- read.table("./UCI HAR Dataset/test/subject_test.txt")
+dat2 <- cbind(subject2,dat2,labels2)
+```
+check if they really have the same number of features 
+```{r include = TRUE}
+dim(dat1)
+dim(dat2)
+```
+
+read features names and activity labels
+```{r include = TRUE}
+feat <- read.table("./UCI HAR Dataset/features.txt")
+features_names <- as.character(feat$V2)
+class_labels <- read.table("./UCI HAR Dataset/activity_labels.txt")
+class_labels <- class_labels$V2
+```
+check if the labels are factor and which levels they have
+```{r include = TRUE}
+levels(class_labels)
+```
+
+Combine train and test dataset
+
+```{r include = TRUE}
+dat <- rbind(dat1,dat2)
+dim(dat)
+```
+
+add columns names + names of first and last one
+```{r include = TRUE}
+names(dat) <- c("subject_ID",features_names, "labelType")
+```
+
+remove duplicated column names
+```{r include = TRUE}
+dat <- dat[,!duplicated(names(dat))]
+dim(dat)
+```
+
+select mean and std
+```{r include = TRUE}
+dat_small <- select(dat,c(ID = contains("subject_ID"),contains("mean"),contains("std"), activity_type = contains("labelType")))
+dim(dat_small)
+```
+
+activity_type must be a factor
+```{r include = TRUE}
+dat_small$activity_type <- as.factor(dat_small$activity_type)
+levels(dat_small$activity_type)
+```
+
+check level names
+```{r include = TRUE}
+levels(dat_small$activity_type) <- levels(class_labels)
+# check if takes new levels
+levels(dat_small$activity_type)
+```
+
+```{r include = TRUE}
+# produce final averages for subjects and activities
+dat_final <- dat_small %>% group_by(activity_type, ID) %>% summarize_all(mean)
+```
+
+```{r include = TRUE}
+write.table(dat_final, file = "final.txt",  row.name = FALSE)
+```
+
+variables descriptions: 
+the mean and sdt for the following variables are calculated for each type of activity and each subject ID: 
+```{r include = TRUE}
+colnames(dat_final)
+```
